@@ -5,7 +5,7 @@ import { auth } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import LandingPage from './LandingPage';
 
-const API_BASE_URL = 'http://127.0.0.1:5000/api';
+const API_BASE_URL = 'https://seo-scientist-backend.onrender.com/api';
 
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
