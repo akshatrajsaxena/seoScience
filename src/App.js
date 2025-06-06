@@ -319,7 +319,7 @@ function App() {
                   <strong>Title:</strong> {data.selectedTitle}
                 </div>
                 <div className="options-list">
-                  {data.topics.split('\n\n').map((topic, index) => (
+                  {(data.topics || '').split('\n\n').filter(topic => topic.trim().length > 0).map((topic, index) =>(
                     <div 
                       key={index}
                       className="option-card topic-card"
