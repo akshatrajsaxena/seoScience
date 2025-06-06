@@ -10,7 +10,7 @@ const API_BASE_URL = 'https://seo-scientist-backend.onrender.com/api';
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState(null); // Track authentication state
+  const [user, setUser] = useState(null);
   const [data, setData] = useState({
     seedKeyword: '',
     keywords: [],
@@ -24,7 +24,6 @@ function App() {
     sessionId: ''
   });
 
-  // Monitor authentication state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -40,7 +39,7 @@ function App() {
     try {
       await signOut(auth);
       setUser(null);
-      resetProcess(); // Reset app state on sign-out
+      resetProcess();
     } catch (error) {
       console.error('Sign-out error:', error.message);
       alert(`Failed to sign out: ${error.message}`);
@@ -50,7 +49,6 @@ function App() {
   const handleKeywordResearch = async () => {
     if (!data.seedKeyword.trim()) {
       alert('Please enter a seed keyword');
-      setLoading(false);
       return;
     }
 
@@ -59,9 +57,7 @@ function App() {
       const response = await axios.post(`${API_BASE_URL}/keywords`, {
         seed_keyword: data.seedKeyword
       });
-      
-      console.log('Keyword response:', response.data);
-      
+
       if (response.data.status === 'success') {
         setData(prev => ({
           ...prev,
@@ -70,11 +66,9 @@ function App() {
         }));
         setCurrentStep(2);
       } else {
-        console.error('Backend error:', response.data.error);
         alert(`Failed to generate keywords: ${response.data.error}`);
       }
     } catch (error) {
-      console.error('Error details:', error.response?.data || error.message);
       alert(`Failed to generate keywords: ${error.response?.data?.error || error.message}`);
     } finally {
       setLoading(false);
@@ -84,24 +78,20 @@ function App() {
   const handleTitleGeneration = async (keyword) => {
     setData(prev => ({ ...prev, selectedKeyword: keyword }));
     setLoading(true);
-    
+
     try {
       const response = await axios.post(`${API_BASE_URL}/titles`, {
         keyword: keyword,
         session_id: data.sessionId
       });
-      
-      console.log('Titles response:', response.data);
-      
+
       if (response.data.status === 'success') {
         setData(prev => ({ ...prev, titles: response.data.titles }));
         setCurrentStep(3);
       } else {
-        console.error('Backend error:', response.data.error);
         alert(`Failed to generate titles: ${response.data.error}`);
       }
     } catch (error) {
-      console.error('Error details:', error.response?.data || error.message);
       alert(`Failed to generate titles: ${error.response?.data?.error || error.message}`);
     } finally {
       setLoading(false);
@@ -111,25 +101,21 @@ function App() {
   const handleTopicGeneration = async (title) => {
     setData(prev => ({ ...prev, selectedTitle: title }));
     setLoading(true);
-    
+
     try {
       const response = await axios.post(`${API_BASE_URL}/topics`, {
         title: title,
         keyword: data.selectedKeyword,
         session_id: data.sessionId
       });
-      
-      console.log('Topics response:', response.data);
-      
+
       if (response.data.status === 'success') {
         setData(prev => ({ ...prev, topics: response.data.topics }));
         setCurrentStep(4);
       } else {
-        console.error('Backend error:', response.data.error);
         alert(`Failed to generate topics: ${response.data.error}`);
       }
     } catch (error) {
-      console.error('Error details:', error.response?.data || error.message);
       alert(`Failed to generate topics: ${error.response?.data?.error || error.message}`);
     } finally {
       setLoading(false);
@@ -139,7 +125,7 @@ function App() {
   const handleContentGeneration = async (topicOutline) => {
     setData(prev => ({ ...prev, selectedTopic: topicOutline }));
     setLoading(true);
-    
+
     try {
       const payload = {
         keyword: data.selectedKeyword,
@@ -148,29 +134,31 @@ function App() {
         content_type: 'blog_intro',
         session_id: data.sessionId
       };
-      console.log('Content request payload:', payload);
-      
+
       const response = await axios.post(`${API_BASE_URL}/content`, payload);
-      
-      console.log('Content response:', response.data);
-      
-      if (response.data.status === 'success') {
+
+      if (
+        response.data.status === 'success' &&
+        response.data.content &&
+        response.data.content.trim().length > 0
+      ) {
         setData(prev => ({
           ...prev,
           content: response.data.content,
           seoScore: {
             percentage: response.data.seo_score,
             word_count: response.data.word_count,
-            keyword_count: response.data.seo_factors.filter(f => f.toLowerCase().includes('keyword frequency')).length || 0
+            keyword_count: response.data.seo_factors.filter(f =>
+              f.toLowerCase().includes('keyword frequency')
+            ).length || 0
           }
         }));
         setCurrentStep(5);
       } else {
-        console.error('Backend error:', response.data.error);
-        alert(`Failed to generate content: ${response.data.error}`);
+        alert('Content generation failed or returned empty. Try another topic.');
+        setCurrentStep(4);
       }
     } catch (error) {
-      console.error('Error details:', error.response?.data || error.message);
       alert(`Failed to generate content: ${error.response?.data?.error || error.message}`);
     } finally {
       setLoading(false);
@@ -212,7 +200,6 @@ function App() {
     return <LandingPage onSignIn={handleSignIn} />;
   }
 
-  // Render main app for authenticated users
   return (
     <div className="App">
       <header className="header">
@@ -232,8 +219,8 @@ function App() {
         <div className="container">
           <div className="progress-bar">
             {[1, 2, 3, 4, 5].map(step => (
-              <div 
-                key={step} 
+              <div
+                key={step}
                 className={`progress-step ${currentStep >= step ? 'active' : ''}`}
               >
                 {step}
@@ -245,82 +232,63 @@ function App() {
             {currentStep === 1 && (
               <div className="step">
                 <h2>Step 1: Keyword Research</h2>
-                <p>Enter a seed keyword to generate related SEO keywords</p>
-                <div className="input-group">
-                  <input
-                    type="text"
-                    placeholder="e.g., digital marketing"
-                    value={data.seedKeyword}
-                    onChange={(e) => setData(prev => ({ ...prev, seedKeyword: e.target.value }))}
-                    onKeyPress={(e) => e.key === 'Enter' && handleKeywordResearch()}
-                  />
-                  <button 
-                    onClick={handleKeywordResearch}
-                    disabled={loading}
-                    className="btn btn-primary"
-                  >
-                    {loading ? ' Generating...' : ' Generate Keywords'}
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  placeholder="e.g., digital marketing"
+                  value={data.seedKeyword}
+                  onChange={(e) => setData(prev => ({ ...prev, seedKeyword: e.target.value }))}
+                  onKeyDown={(e) => e.key === 'Enter' && handleKeywordResearch()}
+                />
+                <button
+                  onClick={handleKeywordResearch}
+                  disabled={loading}
+                  className="btn btn-primary"
+                >
+                  {loading ? 'Generating...' : 'Generate Keywords'}
+                </button>
               </div>
             )}
 
             {currentStep === 2 && (
               <div className="step">
                 <h2>Step 2: Select Keyword</h2>
-                <p>Choose a keyword from the AI-generated suggestions</p>
                 <div className="options-grid">
                   {data.keywords.map((keyword, index) => (
-                    <div 
+                    <div
                       key={index}
                       className="option-card"
                       onClick={() => handleTitleGeneration(keyword)}
                     >
-                      <span className="keyword">{keyword}</span>
+                      {keyword}
                     </div>
                   ))}
                 </div>
-                <button onClick={() => setCurrentStep(1)} className="btn btn-secondary">
-                  ← Back to Keywords
-                </button>
               </div>
             )}
 
             {currentStep === 3 && (
               <div className="step">
                 <h2>Step 3: Select Title</h2>
-                <p>Choose from AI-generated SEO-optimized titles</p>
-                <div className="selected-info">
-                  <strong>Selected Keyword:</strong> {data.selectedKeyword}
-                </div>
                 <div className="options-list">
                   {data.titles.map((title, index) => (
-                    <div 
+                    <div
                       key={index}
                       className="option-card title-card"
                       onClick={() => handleTopicGeneration(title)}
                     >
                       <h3>✨ {title}</h3>
-                      <span className="length">{title.length} characters</span>
                     </div>
                   ))}
                 </div>
-                <button onClick={() => setCurrentStep(2)} className="btn btn-secondary">
-                  ← Back to Keywords
-                </button>
               </div>
             )}
 
             {currentStep === 4 && (
               <div className="step">
                 <h2>Step 4: Select Topic</h2>
-                <p>Choose a content topic or outline</p>
-                <div className="selected-info">
-                  <strong>Title:</strong> {data.selectedTitle}
-                </div>
                 <div className="options-list">
-                  {(data.topics || '').split('\n\n').filter(topic => topic.trim().length > 0).map((topic, index) =>(
-                    <div 
+                  {(data.topics || '').split('\n\n').filter(Boolean).map((topic, index) => (
+                    <div
                       key={index}
                       className="option-card topic-card"
                       onClick={() => handleContentGeneration(topic)}
@@ -329,23 +297,12 @@ function App() {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => setCurrentStep(3)} className="btn btn-secondary">
-                  ← Back to Titles
-                </button>
               </div>
             )}
 
             {currentStep === 5 && (
               <div className="step">
                 <h2>Step 5: Generated Content</h2>
-                <div className="content-summary">
-                  <div className="summary-item">
-                    <strong>Keyword:</strong> {data.selectedKeyword}
-                  </div>
-                  <div className="summary-item">
-                    <strong>Title:</strong> {data.selectedTitle}
-                  </div>
-                </div>
 
                 {data.seoScore && (
                   <div className="seo-score">
@@ -362,18 +319,32 @@ function App() {
 
                 <div className="content-output">
                   <h3>Generated Content</h3>
-                  <div className="content-text">{data.content}</div>
-                  <div className="content-actions">
-                    <button onClick={copyToClipboard} className="btn btn-primary">
-                      Copy to Clipboard
-                    </button>
-                    <button onClick={downloadContent} className="btn btn-secondary">
-                      Download as Text
-                    </button>
-                    <button onClick={resetProcess} className="btn btn-accent">
-                      Start Over
-                    </button>
-                  </div>
+
+                  {data.content ? (
+                    <>
+                      <div className="content-text">{data.content}</div>
+                      <div className="content-actions">
+                        <button onClick={copyToClipboard} className="btn btn-primary">
+                          Copy to Clipboard
+                        </button>
+                        <button onClick={downloadContent} className="btn btn-secondary">
+                          Download as Text
+                        </button>
+                        <button onClick={resetProcess} className="btn btn-accent">
+                          Start Over
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="content-error">
+                      <p style={{ color: 'red' }}>
+                        ⚠️ Content generation failed or was empty. Please try another topic.
+                      </p>
+                      <button onClick={() => setCurrentStep(4)} className="btn btn-secondary">
+                        ← Back to Topics
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
